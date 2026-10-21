@@ -165,7 +165,7 @@ stopping the service and deleting their `/usr/local/bin/pinepaper-exchange`,
 
 ## GitHub Actions and local packaging
 
-Every push, pull request, version tag (`v*`) and manual workflow run produces:
+Every push to `main`, pull request, version tag (`v*`) and manual workflow run produces:
 
 | Package | x86_64 | ARM64 |
 | --- | --- | --- |
