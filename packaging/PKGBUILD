@@ -1,0 +1,25 @@
+# Optional source build after the matching version tag has been published.
+pkgname=pinepaper-exchange
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Ephemeral WebSocket relay for PinePaper collaboration'
+arch=('x86_64' 'aarch64')
+url='https://github.com/porcupin26/pinepaper-relayserver'
+license=('MIT')
+depends=('glibc' 'gcc-libs')
+optdepends=('systemd: managed relay service')
+makedepends=('rust' 'git')
+source=("git+https://github.com/porcupin26/pinepaper-relayserver.git#tag=v$pkgver")
+sha256sums=('SKIP') # Git tag; Cargo.lock checksums dependency sources.
+build() {
+  cd "$srcdir/pinepaper-relayserver"
+  cargo build --release --locked
+}
+check() {
+  cd "$srcdir/pinepaper-relayserver"
+  cargo test --locked
+}
+package() {
+  cd "$srcdir/pinepaper-relayserver"
+  DESTDIR="$pkgdir" PREFIX=/usr UNITDIR=/usr/lib/systemd/system bash packaging/install.sh target/release/pinepaper-exchange
+}

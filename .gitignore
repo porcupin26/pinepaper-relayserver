@@ -1,0 +1,11 @@
+/target/
+/dist/
+.env*
+*.pem
+*.key
+/.tools/
+/artifacts/
+*.log
+*.sqlite3*
+*.db
+*.sock

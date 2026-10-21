@@ -1,0 +1,79 @@
+name: Test and package relay
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: relay-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: x86_64
+          - runner: ubuntu-22.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.96.0'
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - run: sudo apt-get update && sudo apt-get install -y build-essential binutils python3 curl zstd rpm cpio
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --release --locked
+      - name: Install checksum-pinned nFPM
+        run: |
+          bash packaging/install-build-tools.sh "$RUNNER_TEMP/tools"
+          echo "$RUNNER_TEMP/tools" >> "$GITHUB_PATH"
+      - name: DEB, RPM, Arch/pacman and portable tar
+        run: bash packaging/build-packages.sh target/release/pinepaper-exchange '${{ matrix.arch }}'
+      - name: Verify installed package payloads and service paths
+        run: bash packaging/verify-packages.sh target/release/pinepaper-exchange '${{ matrix.arch }}'
+      - name: Checksums
+        run: cd dist && sha256sum *.deb *.rpm *.pkg.tar.zst *.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relay-linux-${{ matrix.arch }}-packages
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  container:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Build and exercise the read-only container
+        run: |
+          docker build -t pinepaper-exchange:ci .
+          docker run -d --name relay-test --read-only --cap-drop ALL --security-opt no-new-privileges:true --memory 768m --pids-limit 64 --ulimit core=0 -p 127.0.0.1:8787:8787 pinepaper-exchange:ci
+          trap 'docker rm -f relay-test >/dev/null 2>&1 || true' EXIT
+          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8787/healthz > health.json
+          python3 -c 'import json; assert json.load(open("health.json")) == {"status":"ok","protocol":1,"storage":"none"}'
+          test -z "$(docker diff relay-test)"
+          docker stop -t 10 relay-test
+          test "$(docker inspect --format '{{.State.ExitCode}}' relay-test)" = 0
+      - name: Export container image
+        run: |
+          mkdir -p dist
+          docker save pinepaper-exchange:ci | gzip > dist/pinepaper-exchange-container-amd64.tar.gz
+          cd dist && sha256sum *.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relay-container-amd64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30

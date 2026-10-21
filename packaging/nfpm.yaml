@@ -1,0 +1,42 @@
+name: pinepaper-exchange
+arch: ${PACKAGE_ARCH}
+platform: linux
+version: ${PACKAGE_VERSION}
+release: 1
+section: net
+priority: optional
+maintainer: PinePaper contributors <porcupin26@users.noreply.github.com>
+description: Ephemeral HTTP(S) WebSocket relay for PinePaper document collaboration. No document storage.
+vendor: PinePaper contributors
+homepage: https://github.com/porcupin26/pinepaper-relayserver
+license: MIT
+mtime: ${PACKAGE_MTIME}
+umask: 0022
+contents:
+  - src: ${PACKAGE_BINARY}
+    dst: /usr/bin/pinepaper-exchange
+    file_info:
+      mode: 0755
+  - src: ${PACKAGE_SERVICE}
+    dst: /usr/lib/systemd/system/pinepaper-exchange.service
+  - src: LICENSE
+    dst: /usr/share/licenses/pinepaper-exchange/LICENSE
+  - src: README.md
+    dst: /usr/share/doc/pinepaper-exchange/README.md
+  - src: PROTOCOL.md
+    dst: /usr/share/doc/pinepaper-exchange/PROTOCOL.md
+  - src: deploy/Caddyfile
+    dst: /usr/share/doc/pinepaper-exchange/examples/Caddyfile
+overrides:
+  deb:
+    depends: [libc6 (>= ${PACKAGE_LIBC_MIN}), libgcc-s1]
+    recommends: [systemd]
+  rpm:
+    depends: [glibc >= ${PACKAGE_LIBC_MIN}, libgcc]
+    recommends: [systemd]
+  archlinux:
+    depends: [glibc, gcc-libs]
+    recommends: [systemd]
+archlinux:
+  pkgbase: pinepaper-exchange
+  packager: PinePaper contributors <porcupin26@users.noreply.github.com>

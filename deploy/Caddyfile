@@ -1,0 +1,4 @@
+# Replace with your domain; point its DNS records to this server.
+exchange.example.com {
+    reverse_proxy 127.0.0.1:8787
+}

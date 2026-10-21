@@ -1,0 +1,20 @@
+services:
+  exchange:
+    build:
+      context: ..
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    pids_limit: 64
+    ulimits:
+      core: 0
+      nofile: 1024
+    logging:
+      driver: local
+      options:
+        max-size: 1m
+        max-file: "2"
