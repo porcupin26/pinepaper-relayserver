@@ -32,7 +32,7 @@ overrides:
     depends: [libc6 (>= ${PACKAGE_LIBC_MIN}), libgcc-s1]
     recommends: [systemd]
   rpm:
-    depends: [glibc >= ${PACKAGE_LIBC_MIN}, libgcc]
+    depends: [glibc >= ${PACKAGE_LIBC_MIN}, 'libgcc_s.so.1()(64bit)']
     recommends: [systemd]
   archlinux:
     depends: [glibc, gcc-libs]
